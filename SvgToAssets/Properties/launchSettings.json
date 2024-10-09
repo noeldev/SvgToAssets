@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "SvgToAssets": {
-      "commandName": "Project",
-      "commandLineArgs": "C:\\Users\\noeld\\OneDrive\\Bureau\\Images\\RailroadManager.svg\r\nC:\\Users\\noeld\\OneDrive\\Bureau\\Assets"
-    }
-  }
-}
