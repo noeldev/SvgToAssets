@@ -74,7 +74,6 @@ namespace SvgToAssets
             }
 
             Console.WriteLine($"Using SVG file: {svgPath}");
-            Console.WriteLine($"Output directory: {outputDirectory}");
 
             try
             {
@@ -103,7 +102,7 @@ namespace SvgToAssets
 
                     assets.GenerateAssets(outputDirectory, generateAll);
 
-                    Console.WriteLine("Assets generated successfully.");
+                    Console.WriteLine($"Assets generated successfully at {outputDirectory}.");
                 }
                 catch (Exception ex)
                 {

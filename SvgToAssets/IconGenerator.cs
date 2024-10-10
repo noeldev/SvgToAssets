@@ -98,7 +98,7 @@ namespace SvgToAssets
             }
         }
 
-        internal static MemoryStream SavePngIconImage(Bitmap bitmap)
+        private static MemoryStream SavePngIconImage(Bitmap bitmap)
         {
             // Save the image in memory
             var stream = new MemoryStream();
@@ -106,7 +106,7 @@ namespace SvgToAssets
             return stream;
         }
 
-        internal static MemoryStream SaveBmpIconImage(Bitmap bitmap)
+        private static MemoryStream SaveBmpIconImage(Bitmap bitmap)
         {
             // Create bitmap (XOR mask) and AND mask
             var (xorMask, andMask) = CreateMasks(bitmap);
@@ -153,7 +153,7 @@ namespace SvgToAssets
             return stream;
         }
 
-        internal static (byte[] xorMask, byte[] andMask) CreateMasks(Bitmap bitmap)
+        private static (byte[] xorMask, byte[] andMask) CreateMasks(Bitmap bitmap)
         {
             int width = bitmap.Width;
             int height = bitmap.Height;
@@ -223,7 +223,7 @@ namespace SvgToAssets
             return (xorMask, andMask);
         }
 
-        internal static byte[] ConvertTopDownToBottomUp(byte[] topDownMask, BitmapData info)
+        private static byte[] ConvertTopDownToBottomUp(byte[] topDownMask, BitmapData info)
         {
             // Create an array to hold the bottom-up mask
             var bottomUpMask = new byte[topDownMask.Length];
