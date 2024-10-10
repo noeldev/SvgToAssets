@@ -1,4 +1,6 @@
-﻿namespace SvgToAssets
+﻿using Svg;
+
+namespace SvgToAssets
 {
     partial class Program
     {
@@ -23,7 +25,7 @@
             }
 
             // Parsing other (optional) parameters
-            var generateAllAssets = false;
+            var generateAll = false;
             var createFolders = false;
             var outputDirectory = string.Empty;
 
@@ -38,10 +40,12 @@
                     // Using StartsWith to check partial matches
                     if ("all".StartsWith(option, StringComparison.OrdinalIgnoreCase))
                     {
-                        generateAllAssets = true;
+                        // Generate all icon sizes in ICO file and all PNG assets
+                        generateAll = true;
                     }
                     else if ("folders".StartsWith(option, StringComparison.OrdinalIgnoreCase))
                     {
+                        // Store PNG asset in "scale-*" folders
                         createFolders = true;
                     }
                     else
@@ -69,38 +73,54 @@
                 outputDirectory = Path.GetFullPath(svgDirectory);
             }
 
+            Console.WriteLine($"Using SVG file: {svgPath}");
             Console.WriteLine($"Output directory: {outputDirectory}");
 
             try
             {
-                // Generate assets
-                var assets = new AssetsGenerator(svgPath)
+                // Load the SVG file intended for asset generation
+                var svgDocument = SvgDocument.Open(svgPath);
+
+                try
                 {
-                    // Configure generator
-                    GenerateAllAssets = generateAllAssets,
-                    CreateFolders = createFolders
-                };
+                    // Generate icon (ICO) file
+                    var icoPath = Path.Combine(outputDirectory, "AppIcon.ico");
+                    var icon = new IconGenerator(svgDocument);
 
-                // Generate icon file
-                var icoPath = Path.Combine(outputDirectory, "AppIcon.ico");
-                assets.GenerateIcon(icoPath);
+                    icon.GenerateIcon(icoPath, generateAll);
 
-                // Generate Assets (PNG) files
-                assets.GenerateAssets(outputDirectory);
+                    Console.WriteLine($"ICO file generated successfully at {icoPath}.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error generating ICO file: {ex.Message}");
+                }
 
-                // If the user requested all assets, generate additional assets
-                Console.WriteLine("Assets generated successfully.");
+                try
+                {
+                    // Generate assets (PNG) files
+                    var assets = new AssetsGenerator(svgDocument, createFolders);
+
+                    assets.GenerateAssets(outputDirectory, generateAll);
+
+                    Console.WriteLine("Assets generated successfully.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error generating assets: {ex.Message}");
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error generating assets: {ex.Message}");
+                Console.WriteLine($"Error opening SVG file: {ex.Message}");
+                Environment.Exit(1); // Exit with a non-zero status to indicate failure
             }
         }
 
         static void ShowTitle()
         {
             var title = """
-                SvgToAssets - Version 1.0
+                SvgToAssets - Version 1.01
                 Converts an SVG file to assets for WinUI projects.
                 (c) 2024, Noël Danjou. All rights reserved.
 
