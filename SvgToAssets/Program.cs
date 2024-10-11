@@ -1,152 +1,217 @@
 ﻿using Svg;
+using System.CommandLine;
+using System.CommandLine.Parsing;
+using System.Reflection;
 
 namespace SvgToAssets
 {
     partial class Program
     {
-        static void Main(string[] args)
+        static async Task<int> Main(string[] args)
         {
             ShowTitle();
 
-            // Check for input parameters
-            if (args.Length == 0)
+            // Argument for the SVG file path (required for both commands)
+            var svgPathArgument = new Argument<FileInfo>(
+                "svgpath",
+                "The path to the SVG source file.")
             {
-                ShowSyntax();
-                return;
-            }
+                Arity = ArgumentArity.ExactlyOne
+            };
 
-            var svgPath = args[0];
+            // Option for the output directory
+            var outputDirOption = new Option<DirectoryInfo>(
+                ["--outdir", "-o"],
+                "The output directory where the assets will be generated.\nIf not specified, the source directory will be used.");
 
-            // Validate SVG file path
-            if (!File.Exists(svgPath))
+            // Option to generate all possible image sizes
+            var allOption = new Option<bool>(
+                ["--all", "-a"],
+                "Generate all possible image sizes."
+            );
+
+            // Option to organize assets in 'scale-*' folders
+            var foldersOption = new Option<bool>(
+                ["--folders", "-f"],
+                "Store PNG assets in 'scale-*' folders."
+            );
+
+            // Create the root command and add arguments and options
+            var rootCommand = new RootCommand
             {
-                Console.WriteLine("Error: The specified SVG file does not exist.");
-                return;
-            }
+                svgPathArgument,
+                outputDirOption,
+                allOption,
+                foldersOption
+            };
 
-            // Parsing other (optional) parameters
-            var generateAll = false;
-            var createFolders = false;
-            var outputDirectory = string.Empty;
+            // Description for root command
+            rootCommand.Description = $"{VersionInfo.Description}";
 
-            for (var i = 1; i < args.Length; i++)
+            // Handler that runs both the icon and asset generation by default
+            rootCommand.SetHandler(async (FileInfo svgpath, DirectoryInfo? outdir, bool all, bool folders) =>
             {
-                var arg = args[i];
+                // Common setup: Load SVG and check/create output directory
+                var svgDocument = LoadSvgDocument(svgpath);
+                var outputDirectory = PrepareOutputDirectory(outdir, svgpath);
 
-                if (arg.StartsWith('-'))
-                {
-                    var option = arg[1..]; // Remove leading dash (-)
+                // Execute both the icon and asset generation
+                await GenerateIconAsync(svgDocument, outputDirectory.FullName, all);
+                await GenerateAssetsAsync(svgDocument, outputDirectory.FullName, all, folders);
 
-                    // Using StartsWith to check partial matches
-                    if ("all".StartsWith(option, StringComparison.OrdinalIgnoreCase))
-                    {
-                        // Generate all icon sizes in ICO file and all PNG assets
-                        generateAll = true;
-                    }
-                    else if ("folders".StartsWith(option, StringComparison.OrdinalIgnoreCase))
-                    {
-                        // Store PNG asset in "scale-*" folders
-                        createFolders = true;
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Unknown option: {arg}");
-                    }
-                }
-                else if (i == 1)
-                {
-                    // Validate the specified output directory
-                    outputDirectory = Path.GetFullPath(arg);
+            }, svgPathArgument, outputDirOption, allOption, foldersOption);
 
-                    // Ensure the output directory exists
-                    if (!Directory.Exists(outputDirectory))
-                    {
-                        Console.WriteLine($"Creating output directory...");
-                        Directory.CreateDirectory(outputDirectory);
-                    }
-                }
-            }
-
-            if (string.IsNullOrEmpty(outputDirectory))
+            // Add subcommand for generating only the icon
+            var iconCommand = new Command("icon", "Converts an SVG file to an icon file.")
             {
-                var svgDirectory = Path.GetDirectoryName(svgPath) ?? string.Empty;              
-                outputDirectory = Path.GetFullPath(svgDirectory);
-            }
+                svgPathArgument,
+                outputDirOption,
+                allOption
+            };
 
-            Console.WriteLine($"Using SVG file: {svgPath}");
+            // Handler for icon command
+            iconCommand.SetHandler(async (FileInfo svgpath, DirectoryInfo? outdir, bool all) =>
+            {
+                // Common setup: Load SVG and check/create output directory
+                var svgDocument = LoadSvgDocument(svgpath);
+                var outputDirectory = PrepareOutputDirectory(outdir, svgpath);
 
+                // Generate only the icon
+                await GenerateIconAsync(svgDocument, outputDirectory.FullName, all);
+
+            }, svgPathArgument, outputDirOption, allOption);
+
+            // Add subcommand for generating only the assets
+            var assetsCommand = new Command("assets", "Converts an SVG file to assets for WinUI projects.")
+            {
+                svgPathArgument,
+                outputDirOption,
+                allOption,
+                foldersOption
+            };
+
+            // Handler for assets command
+            assetsCommand.SetHandler(async (FileInfo svgpath, DirectoryInfo? outdir, bool all, bool folders) =>
+            {
+                // Common setup: Load SVG and check/create output directory
+                var svgDocument = LoadSvgDocument(svgpath);
+                var outputDirectory = PrepareOutputDirectory(outdir, svgpath);
+
+                // Generate only the PNG assets
+                await GenerateAssetsAsync(svgDocument, outputDirectory.FullName, all, folders);
+
+            }, svgPathArgument, outputDirOption, allOption, foldersOption);
+
+            // Add the subcommands to the root command
+            rootCommand.AddCommand(iconCommand);
+            rootCommand.AddCommand(assetsCommand);
+
+            // Invoke the root command
             try
             {
-                // Load the SVG file intended for asset generation
-                var svgDocument = SvgDocument.Open(svgPath);
-
-                try
-                {
-                    // Generate icon (ICO) file
-                    var icoPath = Path.Combine(outputDirectory, "AppIcon.ico");
-                    var icon = new IconGenerator(svgDocument);
-
-                    icon.GenerateIcon(icoPath, generateAll);
-
-                    Console.WriteLine($"ICO file generated successfully at {icoPath}.");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error generating ICO file: {ex.Message}");
-                }
-
-                try
-                {
-                    // Generate assets (PNG) files
-                    var assets = new AssetsGenerator(svgDocument, createFolders);
-
-                    assets.GenerateAssets(outputDirectory, generateAll);
-
-                    Console.WriteLine($"Assets generated successfully at {outputDirectory}.");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error generating assets: {ex.Message}");
-                }
+                // Call the command with the parsed arguments
+                return await rootCommand.InvokeAsync(args);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error opening SVG file: {ex.Message}");
+                Console.WriteLine(ex.Message);
                 Environment.Exit(1); // Exit with a non-zero status to indicate failure
+                return 1;
+            }
+        }
+
+        // Function to load the SVG document
+        static SvgDocument LoadSvgDocument(FileInfo svgPath)
+        {
+            if (!svgPath.Exists)
+            {
+                throw new FileNotFoundException("The specified SVG file does not exist.", svgPath.FullName);
+            }
+
+            // Ensure the file is an SVG
+            if (svgPath.Extension?.ToLower() != ".svg")
+            {
+                throw new Exception($"The file '{svgPath.Name}' is not an SVG.");
+            }
+
+            Console.WriteLine($"Using SVG file: {svgPath.FullName}");
+
+            try
+            {
+                return SvgDocument.Open(svgPath.FullName);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error opening SVG file: {ex.Message}");
+            }
+        }
+
+        // Function to prepare the output directory
+        static DirectoryInfo PrepareOutputDirectory(DirectoryInfo? outdir, FileInfo svgPath)
+        {
+            var outputDirectory = outdir ?? svgPath.Directory;
+
+            if (!outputDirectory!.Exists)
+            {
+                Console.WriteLine("Creating output directory...");
+
+                try
+                {
+                    Directory.CreateDirectory(outputDirectory.FullName);
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception($"Error creating directory: {ex.Message}");
+                }
+            }
+
+            return outputDirectory;
+        }
+
+        // Async function to generate icon
+        static async Task GenerateIconAsync(SvgDocument svgDocument, string outputDirectory, bool generateAll)
+        {
+            var icoPath = Path.Combine(outputDirectory, "AppIcon.ico");
+
+            try
+            {
+                var iconGenerator = new IconGenerator(svgDocument);
+
+                await Task.Run(() => iconGenerator.GenerateIcon(icoPath, generateAll)); // Assume GenerateIcon can be called async
+
+                Console.WriteLine($"Icon file generated successfully at {icoPath}.");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error generating icon file: {ex.Message}");
+            }
+        }
+
+        // Async function to generate assets
+        static async Task GenerateAssetsAsync(SvgDocument svgDocument, string outputDirectory, bool generateAll, bool createFolders)
+        {
+            var assetsGenerator = new AssetsGenerator(svgDocument, createFolders);
+
+            try
+            {
+                await Task.Run(() => assetsGenerator.GenerateAssets(outputDirectory, generateAll)); // Assume GenerateAssets can be called async
+
+                Console.WriteLine($"Assets generated successfully at {outputDirectory}.");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error generating asset files: {ex.Message}");
             }
         }
 
         static void ShowTitle()
         {
-            var title = """
-                SvgToAssets - Version 1.01
-                Converts an SVG file to assets for WinUI projects.
-                (c) 2024, Noël Danjou. All rights reserved.
-
+            var title = $"""
+                SvgToAssets - Version {VersionInfo.Version}
+                {VersionInfo.Copyright}
                 """;
 
             Console.WriteLine(title);
-        }
-
-        // Function to show syntax usage
-        static void ShowSyntax()
-        {
-            var syntax = """
-                Usage:
-                  SvgToAssets <svgpath> [<outdir>] [-all][-folders]
-
-                Where:
-                    <svgpath>   The path to the SVG source file. (required)
-
-                  Optional parameters:
-
-                    [<outdir>]  The folder where output files will be generated.
-                                If not specified, the source directory will be used.
-                    [-all]      All possible assets and icons will be generated.
-                    [-folders]  Assets will be organized in 'scale-*' subfolders.
-                """;
-
-            Console.WriteLine(syntax);
         }
     }
 }

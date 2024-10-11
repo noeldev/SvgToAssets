@@ -40,10 +40,13 @@ namespace SvgToAssets
                     // For AppIcons, generate the additional altform-unplated asset (only save without re-generating)
                     if (isAppIcon && size.IsTarget)
                     {
-                        var altformFilePath = GetAltformUnplatedFilePath(outputPath, asset.BaseName, size);
+                        // Save the same image under the dark theme's name
+                        var darkThemeFilePath = GetDarkThemeFilePath(outputPath, asset.BaseName, size);
+                        bmp.Save(darkThemeFilePath, ImageFormat.Png);
 
-                        // Save the same image under the altform-unplated name
-                        bmp.Save(altformFilePath, ImageFormat.Png);
+                        // Save the same image under the light theme's name
+                        var lightThemeFilePath = GetLightThemeFilePath(outputPath, asset.BaseName, size);
+                        bmp.Save(lightThemeFilePath, ImageFormat.Png);
                     }
                 }
             }
@@ -108,8 +111,14 @@ namespace SvgToAssets
             return Path.Combine(outputPath, fileName);
         }
 
-        // Function to generate output file path for altform-unplated assets
-        private static string GetAltformUnplatedFilePath(string outputPath, string baseName, AssetSize size)
+        // Function to generate output file path for Dark/Light assets
+        private static string GetDarkThemeFilePath(string outputPath, string baseName, AssetSize size)
+        {
+            var fileName = $"{baseName}.targetsize-{size.TargetSize}_altform-unplated.png";
+            return Path.Combine(outputPath, fileName);
+        }
+
+        private static string GetLightThemeFilePath(string outputPath, string baseName, AssetSize size)
         {
             var fileName = $"{baseName}.targetsize-{size.TargetSize}_altform-unplated.png";
             return Path.Combine(outputPath, fileName);
@@ -134,7 +143,7 @@ namespace SvgToAssets
                         new(88, 88, 200),
 
                         // targetsize-*
-                        new(24)
+                        new(16), new(24), new(32), new(48), new(256)
                     ]),
                     new Asset("SplashScreen",
                     [
@@ -184,7 +193,9 @@ namespace SvgToAssets
                         new(176, 176, 400),
 
                         // targetsize-*
-                        new(16), new(24)
+                        new(16), new(20), new(24), new(30), new(32),
+                        new(36), new(40), new(48), new(60), new(64),
+                        new(72), new(80), new(96), new(256)
                     ]),
                     new Asset("SplashScreen",
                     [
