@@ -1,10 +1,23 @@
 ﻿using Svg;
 using System.CommandLine;
 using System.CommandLine.Parsing;
-using System.Reflection;
 
 namespace SvgToAssets
 {
+    // Syntax examples:
+
+    // Generate both icon and asset files using folders:
+    // SvgToAssets source.svg -o outdir -f
+
+    // Generate a standard icon file to outdir:
+    // SvgToAssets icon source.svg -o outdir
+
+    // Generate asset files to outdir:
+    // SvgToAssets assets source.svg -o outdir
+
+    // Generate an icon file to the source folder:
+    // SvgToAssets icon source.svg -a
+
     partial class Program
     {
         static async Task<int> Main(string[] args)

@@ -124,6 +124,8 @@ namespace SvgToAssets
             return Path.Combine(outputPath, fileName);
         }
 
+        // cf. https://learn.microsoft.com/en-us/windows/apps/design/style/iconography/app-icon-construction#icon-sizes-wpf-uwp-winui
+
         // Base assets when "-all" is NOT specified
         private static Asset[] GetBaseAssets()
         {
@@ -161,6 +163,7 @@ namespace SvgToAssets
         {
             return
                 [
+                    // TODO Tile optional light theme (_altform-colorful_theme-light)
                     new Asset("SmallTile",
                     [
                         new(71, 71, 100), new(89, 89, 125),
@@ -197,6 +200,8 @@ namespace SvgToAssets
                         new(36), new(40), new(48), new(60), new(64),
                         new(72), new(80), new(96), new(256)
                     ]),
+                    // TODO SplashScreen optional dark theme (_altform-colorful_theme-dark)
+                    // and light theme (_altform-colorful_theme-light)
                     new Asset("SplashScreen",
                     [
                         new(620, 300, 100), new(775, 375, 125),
@@ -209,6 +214,7 @@ namespace SvgToAssets
                         new(36, 36, 150), new(48, 48, 200),
                         new(96, 96, 400)
                     ]),
+                    // TODO PackageLogo optional light theme (_altform-colorful_theme-light)
                     new Asset("PackageLogo",
                     [
                         new(50, 50, 100), new(63, 63, 125),
