@@ -25,7 +25,7 @@ namespace SvgToAssets
         public static string Description => GetAssemblyAttribute<AssemblyDescriptionAttribute>()?.Description ?? Undefined;
 
         // Generic helper to get assembly attributes
-        private static T? GetAssemblyAttribute<T>(string propertyName = null) where T : Attribute
+        private static T? GetAssemblyAttribute<T>(string? propertyName = null) where T : Attribute
         {
             // Get all attributes of type T
             var attributes = Assembly.GetCustomAttributes(typeof(T), false);
