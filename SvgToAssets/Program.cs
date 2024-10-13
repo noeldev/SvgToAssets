@@ -14,8 +14,11 @@ namespace SvgToAssets
     // Generate a standard icon to outdir:
     // SvgToAssets icon source.svg -o outdir
 
-    // Generate asset files to outdir:
+    // Generate mandatory asset files to outdir:
     // SvgToAssets assets source.svg -o outdir
+
+    // Generate required asset files to outdir:
+    // SvgToAssets assets source.svg -o outdir -l required
 
     // Generate an icon to the source folder:
     // SvgToAssets icon source.svg -a
