@@ -8,12 +8,15 @@ namespace SvgToAssets
     {
         private readonly SvgDocument _svgDocument = svgDocument;
         private readonly bool _createFolders = createFolders;
-        
+
+        // Main method to generate assets based on the generation type
         // cf. https://learn.microsoft.com/en-us/windows/uwp/app-resources/images-tailored-for-scale-theme-contrast#asset-size-tables
-        public void GenerateAssets(string outputPath, bool generateAll = false)
+        public void GenerateAssets(string outputPath, string requirementLevel)
         {
-            // List of assets to generate
-            var assets = generateAll ? GetAllAssets() : GetBaseAssets();
+            var level = AssetRequirement.Parse(requirementLevel);
+
+            // Filter out assets according to level or requirement
+            var assets = GetAssets().Where(asset => asset.Requirements.Any(req => req.IsRequirementLevel(level))).ToArray();
 
             // Create output directory if it doesn't exist
             if (!Directory.Exists(outputPath))
@@ -21,29 +24,22 @@ namespace SvgToAssets
                 Directory.CreateDirectory(outputPath);
             }
 
-            // Loop through the assets and generate PNGs
+            // Loop through assets and generate files
             foreach (var asset in assets)
             {
-                var isAppIcon = asset.BaseName == "AppIcon";
-
                 foreach (var size in asset.Sizes)
                 {
-                    // Generate the image
+                    // Generate the image for the current size
                     using Bitmap bmp = GenerateImage(size.Width, size.Height);
 
-                    // Determine the output path based on scale or targetsize
-                    var outputFilePath = GetOutputFilePath(outputPath, asset.BaseName, size);
-
-                    // Save the image to disk
-                    bmp.Save(outputFilePath, ImageFormat.Png);
-
-                    // For AppIcons, generate the additional altform-unplated asset (only save without re-generating)
-                    if (isAppIcon && size.IsTarget)
+                    // Generate required/optional assets based on their requirements
+                    foreach (var requirement in asset.Requirements)
                     {
-                        var altformFilePath = GetAltformUnplatedFilePath(outputPath, asset.BaseName, size);
-
-                        // Save the same image under the altform-unplated name
-                        bmp.Save(altformFilePath, ImageFormat.Png);
+                        if (requirement.IsRequirementLevel(level))
+                        {
+                            var outputFilePath = GetOutputFilePath(outputPath, asset.BaseName, size, requirement.Suffix);
+                            bmp.Save(outputFilePath, ImageFormat.Png);
+                        }
                     }
                 }
             }
@@ -74,7 +70,7 @@ namespace SvgToAssets
         }
 
         // Function to generate output file path for the assets
-        private string GetOutputFilePath(string outputPath, string baseName, AssetSize size)
+        private string GetOutputFilePath(string outputPath, string baseName, AssetSize size, string suffix)
         {
             var fileName = baseName;
 
@@ -86,6 +82,12 @@ namespace SvgToAssets
             else if (!_createFolders)
             {
                 fileName += $".scale-{size.Scale}";
+            }
+
+            // Add suffix if present
+            if (!string.IsNullOrEmpty(suffix))
+            {
+                fileName += $"_{suffix}";
             }
 
             // Add file extension
@@ -108,136 +110,161 @@ namespace SvgToAssets
             return Path.Combine(outputPath, fileName);
         }
 
-        // Function to generate output file path for altform-unplated assets
-        private static string GetAltformUnplatedFilePath(string outputPath, string baseName, AssetSize size)
-        {
-            var fileName = $"{baseName}.targetsize-{size.TargetSize}_altform-unplated.png";
-            return Path.Combine(outputPath, fileName);
-        }
+        // cf. https://learn.microsoft.com/en-us/windows/apps/design/style/iconography/app-icon-construction#icon-sizes-wpf-uwp-winui
 
-        // Base assets when "-all" is NOT specified
-        private static Asset[] GetBaseAssets()
-        {
-            return
-                [
-                    new Asset("MediumTile",
-                    [
-                        new(300, 300, 200)
-                    ]),
-                    new Asset("WideTile",
-                    [
-                        new(620, 300, 200)
-                    ]),
-                    new Asset("AppIcon",
-                    [
-                        // scale-*
-                        new(88, 88, 200),
-
-                        // targetsize-*
-                        new(24)
-                    ]),
-                    new Asset("SplashScreen",
-                    [
-                        new(1240, 600, 200)
-                    ]),
-                    new Asset("PackageLogo",
-                    [
-                        new(50, 50, 100)
-                    ])
-                ];
-        }
-
-        // All assets when "-all" is specified
-        private static Asset[] GetAllAssets()
-        {
-            return
-                [
-                    new Asset("SmallTile",
-                    [
-                        new(71, 71, 100), new(89, 89, 125),
-                        new(107, 107, 150), new(142, 142, 200),
-                        new(284, 284, 400)
-                    ]),
-                    new Asset("MediumTile",
-                    [
-                        new(150, 150, 100), new(188, 188, 125),
-                        new(225, 225, 150), new(300, 300, 200),
-                        new(600, 600, 400)
-                    ]),
-                    new Asset("WideTile",
-                    [
-                        new(310, 150, 100), new(388, 188, 125),
-                        new(465, 225, 150), new(620, 300, 200),
-                        new(1240, 600, 400)
-                    ]),
-                    new Asset("LargeTile",
-                    [
-                        new(310, 310, 100), new(388, 388, 125),
-                        new(465, 465, 150), new(620, 620, 200),
-                        new(1240, 1240, 400)
-                    ]),
-                    new Asset("AppIcon",
-                    [
-                        // scale-*
-                        new(44, 44, 100), new(55, 55, 125),
-                        new(66, 66, 150), new(88, 88, 200),
-                        new(176, 176, 400),
-
-                        // targetsize-*
-                        new(16), new(24)
-                    ]),
-                    new Asset("SplashScreen",
-                    [
-                        new(620, 300, 100), new(775, 375, 125),
-                        new(930, 450, 150), new(1240, 600, 200),
-                        new(2480, 1200, 400)
-                    ]),
-                    new Asset("BadgeLogo",
-                    [
-                        new(24, 24, 100), new(30, 30, 125),
-                        new(36, 36, 150), new(48, 48, 200),
-                        new(96, 96, 400)
-                    ]),
-                    new Asset("PackageLogo",
-                    [
-                        new(50, 50, 100), new(63, 63, 125),
-                        new(75, 75, 150), new(100, 100, 200)
-                    ])
-                ];
-        }
-    }
-
-    // Class to define each asset and its sizes
-    internal class Asset(string baseName, AssetSize[] sizes)
-    {
-        public string BaseName { get; } = baseName;
-        public AssetSize[] Sizes { get; } = sizes;
-    }
-
-    // Class representing an asset and its sizes
-    internal class AssetSize
-    {
-        public AssetSize(int width, int height, int scale)
-        {
-            Width = width;
-            Height = height;
-            Scale = scale;
-            TargetSize = null;
-        }
-
-        public AssetSize(int size)
-        {
-            Width = size;
-            Height = size;
-            Scale = 0;
-            TargetSize = size;
-        }
-
-        public int Width { get; }
-        public int Height { get; }
-        public int Scale { get; }
-        public int? TargetSize { get; }
-
-        public bool IsTarget => Scale == 0;
+        private static Asset[] GetAssets() =>
+        [
+            new Asset("AppIcon",
+            [
+                // scale-*
+                new (88, 88, 200),
+            ],
+            [
+                // Requirements: scale-<size>
+                new MandatoryAsset()
+            ]),
+            new Asset("AppIcon",
+            [
+                // targetsize-*
+                new (16), new (24), new (32), new (48), new (256)
+            ],
+            [
+                // Requirements: targetsize-<size>
+                new MandatoryAsset()
+            ]),
+            new Asset("AppIcon",
+            [
+                // targetsize-*
+                new (16), new (20), new (24), new (30), new (32),
+                new (36), new (40), new (48), new (60), new (64),
+                new (72), new (80), new (96), new (256)
+            ],
+            [
+                // Requirements: targetsize-<size>[_<suffix>]
+                new RequiredAsset(),
+                new RequiredAsset("altform-unplated"),
+                new RequiredAsset("altform-lightunplated")
+            ]),
+            new Asset("AppIcon",
+            [
+                // scale-*
+                new (44, 44, 100), new (55, 55, 125),
+                new (66, 66, 150), new (88, 88, 200),
+                new (176, 176, 400)
+            ],
+            [
+                // Requirements: scale-<size>[_<suffix>]
+                new OptionalAsset(),
+                new OptionalAsset("altform-colorful_theme-light")
+            ]),
+            new Asset("SmallTile",
+            [
+                new (71, 71, 100), new (89, 89, 125),
+                new (107, 107, 150), new (142, 142, 200),
+                new (284, 284, 400)
+            ],
+            [
+                // Requirements: scale-<size>[_<suffix>]
+                new RequiredAsset(),
+                new OptionalAsset("altform-colorful_theme-light")
+            ]),
+            new Asset("MediumTile",
+            [
+                new (300, 300, 200)
+            ],
+            [
+                // Requirements: scale-<size>
+                new MandatoryAsset()
+            ]),
+            new Asset("MediumTile",
+            [
+                new (150, 150, 100), new (188, 188, 125),
+                new (225, 225, 150), new (300, 300, 200),
+                new (600, 600, 400)
+            ],
+            [
+                // Requirements: scale-<size>[_<suffix>]
+                new RequiredAsset(),
+                new OptionalAsset("altform-colorful_theme-light")
+            ]),
+            new Asset("WideTile",
+            [
+                new (620, 300, 200)
+            ],
+            [
+                // Requirements: scale-<size>
+                new MandatoryAsset()
+            ]),
+            new Asset("WideTile",
+            [
+                new (310, 150, 100), new (388, 188, 125),
+                new (465, 225, 150), new (620, 300, 200),
+                new (1240, 600, 400)
+            ],
+            [
+                // Requirements: scale-<size>[_<suffix>]
+                new RequiredAsset(),
+                new OptionalAsset("altform-colorful_theme-light")
+            ]),
+            new Asset("LargeTile",
+            [
+                new (310, 310, 100), new (388, 388, 125),
+                new (465, 465, 150), new (620, 620, 200),
+                new (1240, 1240, 400)
+            ],
+            [
+                // Requirements: scale-<scale>[_<suffix>]
+                new RequiredAsset(),
+                new OptionalAsset("altform-colorful_theme-light")
+            ]),
+            new Asset("SplashScreen",
+            [
+                new (1240, 600, 200)
+            ],
+            [
+                // Requirements: scale-<size>
+                new MandatoryAsset()
+            ]),
+            new Asset("SplashScreen",
+            [
+                new (620, 300, 100), new (775, 375, 125),
+                new (930, 450, 150), new (1240, 600, 200),
+                new (2480, 1200, 400)
+            ],
+            [
+                // Requirements: scale-<scale>[_<suffix>]
+                new RequiredAsset(),
+                new OptionalAsset("altform-colorful_theme-dark"),
+                new OptionalAsset("altform-colorful_theme-light")
+            ]),
+            new Asset("BadgeLogo",
+            [
+                new (24, 24, 100), new (30, 30, 125),
+                new (36, 36, 150), new (48, 48, 200),
+                new (96, 96, 400)
+            ],
+            [
+                // Requirements: scale-<scale>
+                new OptionalAsset()
+            ]),
+            new Asset("StoreLogo",
+            [
+                new (50, 50, 100)
+            ],
+            [
+                // Requirements: scale-<size>
+                new MandatoryAsset()
+            ]),
+            new Asset("StoreLogo",
+            [
+                new (50, 50, 100), new (63, 63, 125),
+                new (75, 75, 150), new (100, 100, 200)
+            ],
+            [
+                // Requirements: scale-<scale>[_<suffix>]
+                new RequiredAsset(),
+                new OptionalAsset("altform-colorful_theme-light")
+            ])
+        ];
     }
 }
