@@ -364,3 +364,6 @@ FodyWeavers.xsd
 
 ﻿# Ignore launchSettings.json (debug settings)
 **/Properties/launchSettings.json
+
+#Ignore personal examples
+**/Examples/personal

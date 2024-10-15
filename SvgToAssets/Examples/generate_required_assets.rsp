@@ -1,0 +1,17 @@
+﻿# Usage: .\SvgToAssets @examples\generate_required_assets.rsp
+
+# Generate assets
+assets
+
+# SVG source file (<svgpath>)
+%USERPROFILE%\Desktop\SVG\sample.svg
+
+# Output directory (<outdir>)
+# Default: source directory
+--out %USERPROFILE%\Desktop\Assets
+
+# Organize assets in 'scale-*' folders
+--folders
+
+# Generate required assets
+--level required

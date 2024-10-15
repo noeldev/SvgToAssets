@@ -58,10 +58,18 @@
                 (RequirementLevel == Level.Required || RequirementLevel == Level.Optional));
         }
 
-        public static string[] LevelsAsString => Enum.GetNames(typeof(Level)).Select(name => name.ToLower()).ToArray();
-       
-        public static string DefaultLevelAsString => LevelsAsString[0];
+        // Return enum values as an array
+        public static Level[] Levels { get; } = Enum.GetValues<Level>();
 
+        // Return enum values as lowercase strings using Levels
+        public static string[] LevelsAsStrings => Levels.Select(level => level.ToString().ToLower()).ToArray();
+
+        // Default level (first in the enum)
+        public static Level DefaultLevel => Level.Mandatory;
+
+        // Default level as lowercase string
+        public static string DefaultLevelAsString => DefaultLevel.ToString().ToLower();
+        
         public static Level Parse(string level)
         {
             if (Enum.TryParse<Level>(level, true, out var parsedLevel))

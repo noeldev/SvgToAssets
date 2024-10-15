@@ -9,13 +9,43 @@
 	<Product>SvgToAssets</Product>
     <Authors>Noël Danjou</Authors>
 	<Description>Converts an SVG file into assets for WinUI projects.</Description>
-    <Version>1.0.3</Version>
+    <Version>1.0.4</Version>
     <Copyright>(c) 2024, Noël Danjou. All rights reserved.</Copyright>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Svg" Version="3.4.7" />
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Examples\generate_icon_and_assets.rsp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Examples\generate_required_assets.rsp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Examples\generate_mandatory_assets.rsp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Examples\generate_icon_all_images.rsp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Examples\personal\generate_icon_all_images.rsp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Examples\personal\generate_icon_and_assets.rsp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Examples\personal\generate_mandatory_assets.rsp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Examples\personal\generate_required_assets.rsp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Examples\personal\RailroadManager.svg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
