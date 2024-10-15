@@ -1,28 +1,9 @@
 ﻿using Svg;
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
-using System.Drawing;
 
 namespace SvgToAssets
 {
-    // Syntax examples:
-
-    // Generate an icon and asset files using folders:
-    // SvgToAssets batch source.svg -o outdir -f
-
-    // Generate a standard icon to outdir:
-    // SvgToAssets icon source.svg -o outdir
-
-    // Generate mandatory asset files to outdir:
-    // SvgToAssets assets source.svg -o outdir
-
-    // Generate required asset files to outdir:
-    // SvgToAssets assets source.svg -o outdir -l required
-
-    // Generate an icon to the source folder:
-    // SvgToAssets icon source.svg -a
-
     partial class Program
     {
         private static readonly object _consoleLock = new();
@@ -32,17 +13,24 @@ namespace SvgToAssets
             ShowTitle();
 
             // Argument for the SVG file path (required for both commands)
+            // Note: .ExistingOnly() would prevent ParseSvgPath from being
+            // called so it has to check whether the source file exists.
             var svgPathArgument = new Argument<FileInfo>(
-                "svgpath",
-                "The path to the SVG source file.")
+                name: "svgpath",
+                description: "The path to the SVG source file.",
+                parse: ParseSvgPath)
             {
                 Arity = ArgumentArity.ExactlyOne
-            }.ExistingOnly(); // Ensure the file exists
+            };
 
-            // Option for the output directory
-            var outputDirOption = new Option<DirectoryInfo>(
-                ["--outdir", "-o"],
-                "The output directory where the assets will be generated.\nIf not specified, the source directory will be used.");
+            // Option for the output directory with environment variable expansion
+            var outputDirOption = new Option<DirectoryInfo?>(
+                name: "--out",
+                description: "The output directory where the assets will be generated. This option is required if specified.",
+                parseArgument: ParseOutputDirectory);
+
+            // Add aliases using the AddAlias method
+            outputDirOption.AddAlias("-o");
 
             // Option to generate all possible image sizes in icons
             var allOption = new Option<bool>(
@@ -60,7 +48,7 @@ namespace SvgToAssets
             var requirementLevelOption = new Option<string>(
                 ["--level", "-l"],
                 "Specify the asset requirement level."
-            ).FromAmong(AssetRequirement.LevelsAsString);
+            ).FromAmong(AssetRequirement.LevelsAsStrings);
 
             requirementLevelOption.SetDefaultValue(AssetRequirement.DefaultLevelAsString);
 
@@ -74,7 +62,8 @@ namespace SvgToAssets
             // Handler for icon command
             iconCommand.SetHandler(async (FileInfo svgpath, DirectoryInfo? outdir, bool all) =>
             {
-                await HandleIconCommand(svgpath, outdir, all);
+                var outputPath = outdir?.FullName ?? svgpath.DirectoryName!;
+                await HandleIconCommand(svgpath.FullName, outputPath, all);
             }, svgPathArgument, outputDirOption, allOption);
 
             // Subcommand for generating only the assets
@@ -88,7 +77,8 @@ namespace SvgToAssets
             // Handler for assets command
             assetsCommand.SetHandler(async (FileInfo svgpath, DirectoryInfo? outdir, string requirement, bool folders) =>
             {
-                await HandleAssetsCommand(svgpath, outdir, requirement, folders);
+                var outputPath = outdir?.FullName ?? svgpath.DirectoryName!;
+                await HandleAssetsCommand(svgpath.FullName, outputPath, requirement, folders);
             }, svgPathArgument, outputDirOption, requirementLevelOption, foldersOption);
 
             // Subcommand for generating both icon and assets
@@ -103,18 +93,19 @@ namespace SvgToAssets
             // Handler that runs both the icon and asset generation by default
             batchCommand.SetHandler(async (FileInfo svgpath, DirectoryInfo? outdir, bool all, string requirement, bool folders) =>
             {
-                await HandleBatchCommand(svgpath, outdir, all, requirement, folders);
+                var outputPath = outdir?.FullName ?? svgpath.DirectoryName!;
+                await HandleBatchCommand(svgpath.FullName, outputPath, all, requirement, folders);
             }, svgPathArgument, outputDirOption, allOption, requirementLevelOption, foldersOption);
 
             // Create the root command and add subcommands
-            var rootCommand = new RootCommand($"{VersionInfo.Description}");
+            var rootCommand = new RootCommand($"{VersionInfo.Description}")
+            {
+                iconCommand,
+                assetsCommand,
+                batchCommand
+            };
 
             rootCommand.AddGlobalOption(outputDirOption);
-
-            // Add the subcommands to the root command
-            rootCommand.AddCommand(iconCommand);
-            rootCommand.AddCommand(assetsCommand);
-            rootCommand.AddCommand(batchCommand);
 
             // Invoke the root command
             try
@@ -124,85 +115,82 @@ namespace SvgToAssets
             }
             catch (Exception ex)
             {
-                SafeConsoleWrite($"Error parsing command line: {ex.Message}");
+                SafeWriteError($"Error parsing command line: {ex.Message}");
                 return 1;
             }
         }
 
-        static async Task HandleIconCommand(FileInfo svgpath, DirectoryInfo? outdir, bool all)
+        static async Task HandleIconCommand(string svgPath, string outputPath, bool all)
         {
             try
             {
-                var svgDocument = await LoadSvgDocument(svgpath);
-                var outputDirectory = PrepareOutputDirectory(outdir, svgpath);
-                await GenerateIconAsync(svgDocument, outputDirectory.FullName, all);
+                var svgDocument = await LoadSvgDocument(svgPath);
+                await GenerateIconAsync(svgDocument, outputPath, all);
             }
             catch (FileNotFoundException ex)
             {
-                SafeConsoleWrite($"Error: {ex.Message}");
+                SafeWriteError($"Error: {ex.Message}");
             }
             catch (Exception ex)
             {
-                SafeConsoleWrite($"Error in icon generation: {ex.Message}");
+                SafeWriteError($"Error in icon generation: {ex.Message}");
             }
         }
 
-        static async Task HandleAssetsCommand(FileInfo svgpath, DirectoryInfo? outdir, string requirement, bool folders)
+        static async Task HandleAssetsCommand(string svgPath, string outputPath, string requirement, bool folders)
         {
             try
             {
-                var svgDocument = await LoadSvgDocument(svgpath);
-                var outputDirectory = PrepareOutputDirectory(outdir, svgpath);
-                await GenerateAssetsAsync(svgDocument, outputDirectory.FullName, requirement, folders);
+                var svgDocument = await LoadSvgDocument(svgPath);
+                await GenerateAssetsAsync(svgDocument, outputPath, requirement, folders);
             }
             catch (FileNotFoundException ex)
             {
-                SafeConsoleWrite($"Error: {ex.Message}");
+                SafeWriteError($"Error: {ex.Message}");
             }
             catch (Exception ex)
             {
-                SafeConsoleWrite($"Error in assets generation: {ex.Message}");
+                SafeWriteError($"Error in assets generation: {ex.Message}");
             }
         }
 
-        static async Task HandleBatchCommand(FileInfo svgpath, DirectoryInfo? outdir, bool all, string requirement, bool folders)
+        static async Task HandleBatchCommand(string svgPath, string outputPath, bool all, string requirement, bool folders)
         {
             try
             {
-                var svgDocument = await LoadSvgDocument(svgpath);
-                var outputDirectory = PrepareOutputDirectory(outdir, svgpath);
+                var svgDocument = await LoadSvgDocument(svgPath);
                 
                 // Run the task concurrently
-                var iconTask = GenerateIconAsync(svgDocument, outputDirectory.FullName, all);
-                var assetsTask = GenerateAssetsAsync(svgDocument, outputDirectory.FullName, requirement, folders);
+                var iconTask = GenerateIconAsync(svgDocument, outputPath, all);
+                var assetsTask = GenerateAssetsAsync(svgDocument, outputPath, requirement, folders);
 
                 // Wait for the two tasks to complete
                 await Task.WhenAll(iconTask, assetsTask);
             }
             catch (FileNotFoundException ex)
             {
-                SafeConsoleWrite($"Error: {ex.Message}");
+                SafeWriteError($"Error: {ex.Message}");
             }
             catch (Exception ex)
             {
-                SafeConsoleWrite($"Error in batch generation: {ex.Message}");
+                SafeWriteError($"Error in batch generation: {ex.Message}");
             }
         }
 
         // Function to load the SVG document
-        static async Task<SvgDocument> LoadSvgDocument(FileInfo svgPath)
+        static async Task<SvgDocument> LoadSvgDocument(string svgPath)
         {
             try
             {
                 // Ensure the file is an SVG
-                if (svgPath.Extension?.ToLower() != ".svg")
+                if (!Path.GetExtension(svgPath).Equals(".svg", StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new Exception($"'{svgPath.Name}' is not an SVG file.");
+                    throw new Exception($"'{Path.GetFileName(svgPath)}' is not an SVG file.");
                 }
 
-                SafeConsoleWrite($"Using SVG file: {svgPath.FullName}");
+                SafeWriteLine($"Using SVG file: {svgPath}");
 
-                return await Task.Run(() => SvgDocument.Open(svgPath.FullName));
+                return await Task.Run(() => SvgDocument.Open(svgPath));
             }
             catch (Exception ex)
             {
@@ -210,26 +198,67 @@ namespace SvgToAssets
             }
         }
 
-        // Function to prepare the output directory
-        static DirectoryInfo PrepareOutputDirectory(DirectoryInfo? outdir, FileInfo svgPath)
+        private static FileInfo ParseSvgPath(ArgumentResult result)
         {
-            var outputDirectory = outdir ?? svgPath.Directory;
+            // Expand environment variables
+            var path = Environment.ExpandEnvironmentVariables(result.Tokens[0].Value);
 
-            if (!outputDirectory!.Exists)
+            // Check if the path is relative and create an absolute path if necessary
+            if (!Path.IsPathRooted(path))
             {
-                SafeConsoleWrite("Creating output directory...");
+                path = Path.Combine(Directory.GetCurrentDirectory(), path);
+            }
+
+            // Simplify the path to resolve "." and ".."
+            path = Path.GetFullPath(path);
+
+            var fileInfo = new FileInfo(path);
+
+            // Check that the file exists
+            if (!fileInfo.Exists)
+            {
+                result.ErrorMessage = $"File does not exist: '{path}'.";
+            }
+            // Check that the file has a valid extension
+            else if (!fileInfo.Extension.Equals(".svg", StringComparison.OrdinalIgnoreCase))
+            {
+                result.ErrorMessage = $"Not a valid SVG file: '{fileInfo.Name}'.";
+            }
+
+            return fileInfo;
+        }
+
+        static DirectoryInfo ParseOutputDirectory(ArgumentResult result)
+        {
+            var path = Environment.ExpandEnvironmentVariables(result.Tokens[0].Value);
+
+            // Check if the path is relative and create an absolute path if necessary
+            if (!Path.IsPathRooted(path))
+            {
+                path = Path.Combine(Directory.GetCurrentDirectory(), path);
+            }
+
+            // Simplify the path to resolve "." and ".."
+            path = Path.GetFullPath(path);
+            
+            var directoryInfo = new DirectoryInfo(path);
+
+            // Check if directory exists, if not, create it
+            if (!directoryInfo.Exists)
+            {
+                SafeWriteLine($"Creating output directory: {path}");
 
                 try
                 {
-                    Directory.CreateDirectory(outputDirectory.FullName);
+                    directoryInfo.Create();
                 }
-                catch (Exception ex)
+                catch (IOException ex)
                 {
-                    throw new Exception($"Error creating directory: {ex.Message}");
+                    result.ErrorMessage = $"Error creating directory '{path}': {ex.Message}";
                 }
             }
 
-            return outputDirectory;
+            return new DirectoryInfo(path);
         }
 
         // Async function to generate icon
@@ -241,9 +270,14 @@ namespace SvgToAssets
             {
                 var iconGenerator = new IconGenerator(svgDocument);
 
+                // Get and display image dimensions
+                var imageSizes = IconGenerator.GetImageSizesAsString(generateAll);
+                SafeWriteLine($"Generating image sizes: {imageSizes}");
+
+                // Generate icon
                 await Task.Run(() => iconGenerator.GenerateIcon(icoPath, generateAll)); // Assume GenerateIcon can be called async
 
-                SafeConsoleWrite($"Icon file generated successfully at {icoPath}.");
+                SafeWriteSuccess($"Icon file generated successfully at {icoPath}.");
             }
             catch (Exception ex)
             {
@@ -258,11 +292,11 @@ namespace SvgToAssets
 
             try
             {
-                SafeConsoleWrite($"Generating assets for requirement level: {requirement}.");
+                SafeWriteLine($"Generating assets for requirement level: {requirement}.");
 
-                await Task.Run(() => assetsGenerator.GenerateAssets(outputDirectory, requirement)); // Assume GenerateAssets can be called async
+                await Task.Run(() => assetsGenerator.GenerateAssets(outputDirectory, requirement));
 
-                SafeConsoleWrite($"Assets generated successfully at {outputDirectory}.");
+                SafeWriteSuccess($"Assets generated successfully at {outputDirectory}.");
             }
             catch (Exception ex)
             {
@@ -275,17 +309,37 @@ namespace SvgToAssets
             var title = $"""
                 {VersionInfo.Product} - Version {VersionInfo.Version}
                 {VersionInfo.Copyright}
+
                 """;
 
             Console.WriteLine(title);
         }
 
-        private static void SafeConsoleWrite(string message)
+        public static void SafeWriteLine(string message, ConsoleColor? color = null)
         {
             lock (_consoleLock)
             {
-                Console.WriteLine(message);
+                if (color.HasValue)
+                {
+                    Console.ForegroundColor = color.Value;
+                    Console.WriteLine(message);
+                    Console.ResetColor();
+                }
+                else
+                {
+                    Console.WriteLine(message);
+                }
             }
+        }
+
+        public static void SafeWriteError(string message)
+        {
+            SafeWriteLine(message, ConsoleColor.Red);
+        }
+
+        public static void SafeWriteSuccess(string message)
+        {
+            SafeWriteLine(message, ConsoleColor.Green);
         }
     }
 }

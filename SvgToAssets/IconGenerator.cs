@@ -9,15 +9,29 @@ namespace SvgToAssets
     {
         private readonly SvgDocument _svgDocument = svgDocument;
 
-        // cf. https://learn.microsoft.com/en-us/windows/apps/design/style/iconography/app-icon-construction
-        public void GenerateIcon(string icoPath, bool generateAll = false)
+        // Return selected sizes for display
+        public static int[] GetImageSizes(bool generateAll)
         {
-            // Define standard sizes (base or all)
+            // Define standard sizes
             int[] standardSizes = [16, 24, 32, 48, 256]; // Minimal required sizes
             int[] allSizes = [16, 20, 24, 30, 32, 36, 40, 48, 60, 64, 72, 80, 96, 256]; // All possible sizes
 
             // Choose the size set based on the generation mode
-            var selectedSizes = generateAll ? allSizes : standardSizes;
+            return generateAll ? allSizes : standardSizes;
+        }
+
+        // Return sizes as a comma-separated string
+        public static string GetImageSizesAsString(bool generateAll)
+        {
+            var imageSizes = GetImageSizes(generateAll);
+            return string.Join(", ", imageSizes.Select(size => $"{size}x{size}"));
+        }
+        
+        // Generate icon from SVG
+        // cf. https://learn.microsoft.com/en-us/windows/apps/design/style/iconography/app-icon-construction
+        public void GenerateIcon(string icoPath, bool generateAll = false)
+        {
+            var selectedSizes = GetImageSizes(generateAll);
 
             // Generate the icon
             using var iconStream = new FileStream(icoPath, FileMode.Create);

@@ -1,0 +1,16 @@
+﻿# Usage: .\SvgToAssets @examples\generate_icon_all_images.rsp
+
+# Generate a single icon file (.ico)
+icon
+
+# SVG source file (<svgpath>)
+%USERPROFILE%\Desktop\SVG\sample.svg
+
+# Output directory (<outdir>)
+# Default: source directory
+--out %USERPROFILE%\Desktop\Assets
+
+# Generate all image formats:
+#  16x16, 20x20, 24x24, 30x30, 32x32, 36x36, 40x40,
+#  48x48, 60x60, 64x64, 72x72, 80x80, 96x96, 256x256
+--all
