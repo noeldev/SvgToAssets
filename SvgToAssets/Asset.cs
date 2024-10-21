@@ -37,10 +37,10 @@
 
     public enum AssetCategory
     {
-        basic,      // Basic assets
-        required,   // Required assets (includes basic assets)
-        optional,   // Optional assets
-        all         // Both required and optional assets
+        Basic,      // Basic assets
+        Required,   // Required assets (includes basic assets)
+        Optional,   // Optional assets
+        All         // Both required and optional assets
     }
 
     // Abstract base class for asset groups
@@ -54,30 +54,28 @@
         {
             return 
                 Category == category || 
-                (category == AssetCategory.all &&
-                (Category == AssetCategory.required || Category == AssetCategory.optional));
+                (category == AssetCategory.All &&
+                (Category == AssetCategory.Required || Category == AssetCategory.Optional));
         }
 
-        public static string[] Categories => [.. Enum.GetNames<AssetCategory>()];
-
-        public static AssetCategory DefaultCategory => AssetCategory.basic;
+        public static AssetCategory DefaultCategory => AssetCategory.Basic;
     }
 
     // Class for basic assets
     internal class BasicAsset(string suffix = "") : AssetGroup(suffix)
     {
-        protected override AssetCategory Category => AssetCategory.basic;
+        protected override AssetCategory Category => AssetCategory.Basic;
     }
 
     // Class for required assets
     internal class RequiredAsset(string suffix = "") : AssetGroup(suffix)
     {
-        protected override AssetCategory Category => AssetCategory.required;
+        protected override AssetCategory Category => AssetCategory.Required;
     }
 
     // Class for optional assets
     internal class OptionalAsset(string suffix = "") : AssetGroup(suffix)
     {
-        protected override AssetCategory Category => AssetCategory.optional;
+        protected override AssetCategory Category => AssetCategory.Optional;
     }
 }

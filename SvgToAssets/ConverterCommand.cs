@@ -7,12 +7,11 @@ namespace SvgToAssets
 {
     internal class ConverterCommand : RootCommand
     {
-        // Enum for resource options
         internal enum AssetsType
         {
-            icon,   // Generate icon only
-            assets, // Generate assets only
-            all     // Generate both icon and assets (default)
+            Icon,   // Generate icon only
+            Assets, // Generate assets only
+            All     // Generate both icon and assets (default)
         }
 
         // Create the root command
@@ -29,11 +28,11 @@ namespace SvgToAssets
                 Arity = ArgumentArity.ExactlyOne
             };
 
-            // Dynamic Tab completions for files (.svg or .rsp)
+            // Dynamic tab completions for files (.svg or .rsp)
             svgPathArgument.AddCompletions((ctx) => GetFileCompletions(ctx, ".svg"));
 
             // Option for the output directory with environment variable expansion
-            var outputDirOption = new Option<DirectoryInfo?>(
+            var outputOption = new Option<DirectoryInfo?>(
                 name: "--output",
                 description: "The output directory where the assets will be generated.\nDefaults to source path if not specified.",
                 parseArgument: ParseOutputDirectory)
@@ -41,23 +40,22 @@ namespace SvgToAssets
                 Arity = ArgumentArity.ExactlyOne
             };
 
-            // Add aliases using the AddAlias method
-            outputDirOption.AddAlias("-out");
-            outputDirOption.AddAlias("-o");
+            // Add aliases
+            outputOption.AddAlias("-o");
 
             // Option that defines the type(s) of assets to generate
             var assetsType = new Option<AssetsType>(
-                ["--type", "-t"], 
+                ["--type", "-t"],
                 "Type of assets to generate."
-            ).FromAmong(AssetsTypes);
+            );
 
             assetsType.SetDefaultValue(DefaultAssetsType);
 
             // Option that defines the category of assets to generate
             var assetCategory = new Option<AssetCategory>(
-                ["--assets", "-a"], 
+                ["--assets", "-a"],
                 "Category of assets to generate."
-            ).FromAmong(AssetGroup.Categories);
+            );
 
             assetCategory.SetDefaultValue(AssetGroup.DefaultCategory);
 
@@ -73,7 +71,7 @@ namespace SvgToAssets
 
             // Add arguments and options
             AddArgument(svgPathArgument);
-            AddOption(outputDirOption);
+            AddOption(outputOption);
             AddOption(assetsType);
             AddOption(assetCategory);
             AddOption(iconFullSet);
@@ -87,19 +85,14 @@ namespace SvgToAssets
                 {
                     var svgDocument = await LoadSvgDocument(svgPath.FullName);
 
-                    if (assetsType == AssetsType.icon)
+                    if (assetsType == AssetsType.Icon || assetsType == AssetsType.All)
                     {
                         await GenerateIconAsync(svgDocument, outputPath, iconFullSet);
                     }
-                    else if (assetsType == AssetsType.assets)
+
+                    if (assetsType == AssetsType.Assets || assetsType == AssetsType.All)
                     {
                         await GenerateAssetsAsync(svgDocument, outputPath, assetCategory, folders);
-                    }
-                    else // AssetsType.all
-                    {                       
-                        var iconTask = GenerateIconAsync(svgDocument, outputPath, iconFullSet);
-                        var assetTask = GenerateAssetsAsync(svgDocument, outputPath, assetCategory, folders);
-                        await Task.WhenAll(iconTask, assetTask);
                     }
                 }
                 catch (FileNotFoundException ex)
@@ -110,12 +103,10 @@ namespace SvgToAssets
                 {
                     Program.SafeWriteError($"Error in assets generation: {ex.Message}");
                 }
-            }, svgPathArgument, outputDirOption, assetsType, assetCategory, iconFullSet, createFolders);
+            }, svgPathArgument, outputOption, assetsType, assetCategory, iconFullSet, createFolders);
         }
 
-        public static string[] AssetsTypes => [.. Enum.GetNames<AssetsType>()];
-
-        public static AssetsType DefaultAssetsType => AssetsType.all;
+        public static AssetsType DefaultAssetsType => AssetsType.All;
 
         #region Parameter validation
 
@@ -214,7 +205,7 @@ namespace SvgToAssets
 
         #endregion
 
-        #region Icon and Asset Generation
+        #region Icon and Assets Generation
 
         // Function to load the SVG document
         private static async Task<SvgDocument> LoadSvgDocument(string svgPath)
@@ -227,7 +218,10 @@ namespace SvgToAssets
                     throw new Exception($"'{Path.GetFileName(svgPath)}' is not an SVG file.");
                 }
 
-                Program.SafeWriteLine($"Using SVG file: {svgPath}");
+                // Display relative path to the SVG file
+                var currentDirectory = Directory.GetCurrentDirectory();
+                var relativeFilePath = Path.GetRelativePath(currentDirectory, svgPath);
+                Program.SafeWriteLine($"Using SVG file: {relativeFilePath}");
 
                 return await Task.Run(() => SvgDocument.Open(svgPath));
             }

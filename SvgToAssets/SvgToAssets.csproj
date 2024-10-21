@@ -26,25 +26,25 @@
     <None Update="Examples\generate_required_assets.rsp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Examples\generate_mandatory_assets.rsp">
+    <None Update="Examples\generate_basic_assets.rsp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Examples\generate_icon_all_images.rsp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Examples\personal\generate_icon_all_images.rsp">
+    <None Update="Examples\Personal\generate_basic_assets.rsp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Examples\personal\generate_icon_and_assets.rsp">
+    <None Update="Examples\Personal\generate_icon_all_images.rsp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Examples\personal\generate_mandatory_assets.rsp">
+    <None Update="Examples\Personal\generate_icon_and_assets.rsp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Examples\personal\generate_required_assets.rsp">
+    <None Update="Examples\Personal\generate_required_assets.rsp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Examples\personal\RailroadManager.svg">
+    <None Update="Examples\Personal\RailroadManager.svg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
