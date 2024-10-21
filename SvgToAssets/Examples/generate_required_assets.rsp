@@ -4,7 +4,7 @@
 %USERPROFILE%\Desktop\SVG\sample.svg
 
 # Output directory (<output>)
---out %USERPROFILE%\Desktop\Assets
+--output %USERPROFILE%\Desktop\Assets
 
 # Generate assets
 --type Assets
