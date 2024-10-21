@@ -11,12 +11,10 @@ namespace SvgToAssets
 
         // Main method to generate assets based on the generation type
         // cf. https://learn.microsoft.com/en-us/windows/uwp/app-resources/images-tailored-for-scale-theme-contrast#asset-size-tables
-        public void GenerateAssets(string outputPath, string requirementLevel)
+        public void GenerateAssets(string outputPath, AssetCategory category)
         {
-            var level = AssetRequirement.Parse(requirementLevel);
-
             // Filter out assets according to level or requirement
-            var assets = GetAssets().Where(asset => asset.Requirements.Any(req => req.IsRequirementLevel(level))).ToArray();
+            var assets = GetAssets().Where(asset => asset.Groups.Any(req => req.IsCategory(category))).ToArray();
 
             // Create output directory if it doesn't exist
             if (!Directory.Exists(outputPath))
@@ -32,12 +30,12 @@ namespace SvgToAssets
                     // Generate the image for the current size
                     using Bitmap bmp = GenerateImage(size.Width, size.Height);
 
-                    // Generate required/optional assets based on their requirements
-                    foreach (var requirement in asset.Requirements)
+                    // Generate assets based on their categories
+                    foreach (var group in asset.Groups)
                     {
-                        if (requirement.IsRequirementLevel(level))
+                        if (group.IsCategory(category))
                         {
-                            var outputFilePath = GetOutputFilePath(outputPath, asset.BaseName, size, requirement.Suffix);
+                            var outputFilePath = GetOutputFilePath(outputPath, asset.BaseName, size, group.Suffix);
                             bmp.Save(outputFilePath, ImageFormat.Png);
                         }
                     }
@@ -120,8 +118,7 @@ namespace SvgToAssets
                 new (88, 88, 200),
             ],
             [
-                // Requirements: scale-<size>
-                new MandatoryAsset()
+                new BasicAsset()
             ]),
             new Asset("AppIcon",
             [
@@ -129,8 +126,7 @@ namespace SvgToAssets
                 new (16), new (24), new (32), new (48), new (256)
             ],
             [
-                // Requirements: targetsize-<size>
-                new MandatoryAsset()
+                new BasicAsset()
             ]),
             new Asset("AppIcon",
             [
@@ -140,7 +136,6 @@ namespace SvgToAssets
                 new (72), new (80), new (96), new (256)
             ],
             [
-                // Requirements: targetsize-<size>[_<suffix>]
                 new RequiredAsset(),
                 new RequiredAsset("altform-unplated"),
                 new RequiredAsset("altform-lightunplated")
@@ -153,7 +148,6 @@ namespace SvgToAssets
                 new (176, 176, 400)
             ],
             [
-                // Requirements: scale-<size>[_<suffix>]
                 new OptionalAsset(),
                 new OptionalAsset("altform-colorful_theme-light")
             ]),
@@ -164,7 +158,6 @@ namespace SvgToAssets
                 new (284, 284, 400)
             ],
             [
-                // Requirements: scale-<size>[_<suffix>]
                 new RequiredAsset(),
                 new OptionalAsset("altform-colorful_theme-light")
             ]),
@@ -173,8 +166,7 @@ namespace SvgToAssets
                 new (300, 300, 200)
             ],
             [
-                // Requirements: scale-<size>
-                new MandatoryAsset()
+                new BasicAsset()
             ]),
             new Asset("MediumTile",
             [
@@ -183,7 +175,6 @@ namespace SvgToAssets
                 new (600, 600, 400)
             ],
             [
-                // Requirements: scale-<size>[_<suffix>]
                 new RequiredAsset(),
                 new OptionalAsset("altform-colorful_theme-light")
             ]),
@@ -192,8 +183,7 @@ namespace SvgToAssets
                 new (620, 300, 200)
             ],
             [
-                // Requirements: scale-<size>
-                new MandatoryAsset()
+                new BasicAsset()
             ]),
             new Asset("WideTile",
             [
@@ -202,7 +192,6 @@ namespace SvgToAssets
                 new (1240, 600, 400)
             ],
             [
-                // Requirements: scale-<size>[_<suffix>]
                 new RequiredAsset(),
                 new OptionalAsset("altform-colorful_theme-light")
             ]),
@@ -213,7 +202,6 @@ namespace SvgToAssets
                 new (1240, 1240, 400)
             ],
             [
-                // Requirements: scale-<scale>[_<suffix>]
                 new RequiredAsset(),
                 new OptionalAsset("altform-colorful_theme-light")
             ]),
@@ -222,8 +210,7 @@ namespace SvgToAssets
                 new (1240, 600, 200)
             ],
             [
-                // Requirements: scale-<size>
-                new MandatoryAsset()
+                new BasicAsset()
             ]),
             new Asset("SplashScreen",
             [
@@ -232,7 +219,6 @@ namespace SvgToAssets
                 new (2480, 1200, 400)
             ],
             [
-                // Requirements: scale-<scale>[_<suffix>]
                 new RequiredAsset(),
                 new OptionalAsset("altform-colorful_theme-dark"),
                 new OptionalAsset("altform-colorful_theme-light")
@@ -244,7 +230,6 @@ namespace SvgToAssets
                 new (96, 96, 400)
             ],
             [
-                // Requirements: scale-<scale>
                 new OptionalAsset()
             ]),
             new Asset("StoreLogo",
@@ -252,8 +237,7 @@ namespace SvgToAssets
                 new (50, 50, 100)
             ],
             [
-                // Requirements: scale-<size>
-                new MandatoryAsset()
+                new BasicAsset()
             ]),
             new Asset("StoreLogo",
             [
@@ -261,7 +245,6 @@ namespace SvgToAssets
                 new (75, 75, 150), new (100, 100, 200)
             ],
             [
-                // Requirements: scale-<scale>[_<suffix>]
                 new RequiredAsset(),
                 new OptionalAsset("altform-colorful_theme-light")
             ])

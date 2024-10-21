@@ -1,4 +1,4 @@
-﻿# Usage: .\SvgToAssets @examples\generate_icon_and_assets.rsp
+﻿# Usage: .\SvgToAssets @examples\generate_basic_assets.rsp
 
 # SVG source file (<svgpath>)
 %USERPROFILE%\Desktop\SVG\sample.svg
@@ -6,11 +6,11 @@
 # Output directory (<output>)
 --output %USERPROFILE%\Desktop\Assets
 
-# Generate both icon and assets (optional, default)
---type All
+# Generate assets only
+--type Assets
+
+# Generate basic assets (optional, default)
+--assets Basic
 
 # Organize assets in 'scale-*' folders
 --folders
-
-# Generate all image formats:
---icon-all
