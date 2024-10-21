@@ -9,8 +9,11 @@
 	<Product>SvgToAssets</Product>
     <Authors>Noël Danjou</Authors>
 	<Description>Converts an SVG file into assets for WinUI projects.</Description>
-    <Version>1.0.5</Version>
-    <Copyright>© 2024, Noël Danjou. All rights reserved.</Copyright>
+    <Version>1.0.0</Version>
+    <InformationalVersion>1.0.0-beta</InformationalVersion>
+	<AssemblyVersion>1.0.0</AssemblyVersion>
+	<FileVersion>1.0.5.0</FileVersion>
+	<Copyright>© 2024, Noël Danjou. All rights reserved.</Copyright>
 	<IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 
